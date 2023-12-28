@@ -175,8 +175,8 @@ int main() {
 
 
     //---------YOU NEED TO MODIFY THIS PART-------------------------------------
-    dim3 dimBlock(16);
-    dim3 dimGrid(1);
+    dim3 dimBlock(32, 32);
+    dim3 dimGrid((50 + dimBlock.x - 1) / dimBlock.x, (50 + dimBlock.y - 1) / dimBlock.y);
 
     cuda_layer_v1 << <dimGrid, dimBlock >> > (in_FP_d, filter_FP_d, bias_array_FP_d, out_FP_d, Input_Output_batch_dim, Input_X_dim, Input_Y_dim, Input_depth_dim, Stride_X_dim, Stride_Y_dim, Output_X_dim, Output_Y_dim, Output_depth_dim, Mask_X_dim, Mask_Y_dim);
 
@@ -233,11 +233,9 @@ __global__ void cuda_layer_v1(float* in_FP, float* filter_FP, float* bias_array_
 
     //YOU NEED TO WRITE YOUR ROUTINE HERE
 
-    float temp, bias;
-
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     int x = blockIdx.x * blockDim.x + threadIdx.x;
-
+    float temp, bias;
 
     for (unsigned int b = 0; b < Input_Output_batch_dim; b++) {
         for (unsigned int m = 0; m < Output_depth_dim; m++) {
@@ -248,7 +246,6 @@ __global__ void cuda_layer_v1(float* in_FP, float* filter_FP, float* bias_array_
                 for (unsigned int off_y = 0; off_y < Mask_Y_dim; off_y++) {
                     for (unsigned int off_x = 0; off_x < Mask_X_dim; off_x++) {
                         for (unsigned int d = 0; d < Input_depth_dim; d++) {
-
                             unsigned long long int in_subscript = b * (Input_Y_dim * Input_X_dim * Input_depth_dim)
                                 + (y * Stride_Y_dim + off_y) * Input_X_dim * Input_depth_dim
                                 + (x * Stride_X_dim + off_x) * Input_depth_dim
@@ -280,18 +277,15 @@ __global__ void cuda_layer_v1(float* in_FP, float* filter_FP, float* bias_array_
                     out_FP[out_subscript] = temp;
                 }
 
+
+
             }
 
 
         }
     }
 
-    
-
-
 }
-
-
 
 
 void compare_output_result_FP() {
