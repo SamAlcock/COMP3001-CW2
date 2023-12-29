@@ -236,18 +236,21 @@ __global__ void cuda_layer_v1(float* in_FP, float* filter_FP, float* bias_array_
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int m = blockIdx.z * blockDim.z + threadIdx.z;
-    float temp, bias;
+    float temp, temp1, bias;
 
-    for (unsigned int b = 0; b < Input_Output_batch_dim; b++) {
+    for (unsigned int b = 0; b < Input_Output_batch_dim; b+=2) {
         if (m < Output_depth_dim) { //128
 
             if (y < Output_Y_dim && x < Output_X_dim) {
                 bias = bias_array_FP[m];
                 temp = 0.0f;
+                temp1 = 0.0f;
                 for (unsigned int off_y = 0; off_y < Mask_Y_dim; off_y++) {
                     for (unsigned int off_x = 0; off_x < Mask_X_dim; off_x++) {
+                        
                         for (unsigned int d = 0; d < Input_depth_dim; d+=2) {
                             
+                            //d, b
                             unsigned long long int in_subscript = b * (Input_Y_dim * Input_X_dim * Input_depth_dim)
                                 + (y * Stride_Y_dim + off_y) * Input_X_dim * Input_depth_dim
                                 + (x * Stride_X_dim + off_x) * Input_depth_dim
@@ -261,7 +264,7 @@ __global__ void cuda_layer_v1(float* in_FP, float* filter_FP, float* bias_array_
                             float w = filter_FP[filter_subscript];
                             temp = temp + s * w;
 
-                            // d + 1
+                            // d + 1, b
                             in_subscript = b * (Input_Y_dim * Input_X_dim * Input_depth_dim)
                                 + (y * Stride_Y_dim + off_y) * Input_X_dim * Input_depth_dim
                                 + (x * Stride_X_dim + off_x) * Input_depth_dim
@@ -274,6 +277,36 @@ __global__ void cuda_layer_v1(float* in_FP, float* filter_FP, float* bias_array_
                             s = in_FP[in_subscript];
                             w = filter_FP[filter_subscript];
                             temp = temp + s * w;
+
+                            // d, b + 1
+                            in_subscript = (b + 1) * (Input_Y_dim * Input_X_dim * Input_depth_dim)
+                                + (y * Stride_Y_dim + off_y) * Input_X_dim * Input_depth_dim
+                                + (x * Stride_X_dim + off_x) * Input_depth_dim
+                                + d;
+                            filter_subscript = m * Mask_Y_dim * Mask_X_dim * Input_depth_dim
+                                + off_y * Mask_X_dim * Input_depth_dim
+                                + off_x * Input_depth_dim
+                                + d;
+
+                            s = in_FP[in_subscript];
+                            w = filter_FP[filter_subscript];
+                            temp1 = temp1 + s * w;
+
+                            // d + 1, b + 1
+                            in_subscript = (b + 1) * (Input_Y_dim * Input_X_dim * Input_depth_dim)
+                                + (y * Stride_Y_dim + off_y) * Input_X_dim * Input_depth_dim
+                                + (x * Stride_X_dim + off_x) * Input_depth_dim
+                                + d + 1;
+                            filter_subscript = m * Mask_Y_dim * Mask_X_dim * Input_depth_dim
+                                + off_y * Mask_X_dim * Input_depth_dim
+                                + off_x * Input_depth_dim
+                                + d + 1;
+
+                            s = in_FP[in_subscript];
+                            w = filter_FP[filter_subscript];
+                            temp1 = temp1 + s * w;
+
+                            
 
                         }
                     }
@@ -291,6 +324,21 @@ __global__ void cuda_layer_v1(float* in_FP, float* filter_FP, float* bias_array_
                 else {
                     out_FP[out_subscript] = temp;
                 }
+
+                out_subscript = (b + 1) * (Output_depth_dim * Output_X_dim * Output_Y_dim) +
+                    y * (Output_depth_dim * Output_X_dim) +
+                    x * Output_depth_dim
+                    + m;
+
+                temp1 += bias;
+                if (temp1 < 0.0f) {
+                    out_FP[out_subscript] = 0.0f;
+                }
+                else {
+                    out_FP[out_subscript] = temp1;
+                }
+
+
 
 
 
