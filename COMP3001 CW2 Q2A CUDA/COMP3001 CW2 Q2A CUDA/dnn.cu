@@ -246,7 +246,7 @@ __global__ void cuda_layer_v1(float* in_FP, float* filter_FP, float* bias_array_
                 temp = 0.0f;
                 for (unsigned int off_y = 0; off_y < Mask_Y_dim; off_y++) {
                     for (unsigned int off_x = 0; off_x < Mask_X_dim; off_x++) {
-                        for (unsigned int d = 0; d < Input_depth_dim; d++) {
+                        for (unsigned int d = 0; d < Input_depth_dim; d+=2) {
                             
                             unsigned long long int in_subscript = b * (Input_Y_dim * Input_X_dim * Input_depth_dim)
                                 + (y * Stride_Y_dim + off_y) * Input_X_dim * Input_depth_dim
@@ -261,6 +261,19 @@ __global__ void cuda_layer_v1(float* in_FP, float* filter_FP, float* bias_array_
                             float w = filter_FP[filter_subscript];
                             temp = temp + s * w;
 
+                            // d + 1
+                            in_subscript = b * (Input_Y_dim * Input_X_dim * Input_depth_dim)
+                                + (y * Stride_Y_dim + off_y) * Input_X_dim * Input_depth_dim
+                                + (x * Stride_X_dim + off_x) * Input_depth_dim
+                                + d + 1;
+                            filter_subscript = m * Mask_Y_dim * Mask_X_dim * Input_depth_dim
+                                + off_y * Mask_X_dim * Input_depth_dim
+                                + off_x * Input_depth_dim
+                                + d + 1;
+
+                            s = in_FP[in_subscript];
+                            w = filter_FP[filter_subscript];
+                            temp = temp + s * w;
 
                         }
                     }
