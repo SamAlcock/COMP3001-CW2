@@ -18,15 +18,7 @@ int unoptimized_layer_FP(const float* in_FP, const float* filter_FP, const float
     float temp, bias;
     __m256 mm, mmbias, mmMask_Y_dim, mmMask_X_dim, mmInput_depth_dim, mmoff_y, mmoff_x, mmd, mmfilter_subscript, mm0, mm1, mm2, mm3, mm4, mms, mmw, mmtemp;
     __m256 mmout_subscript, mmb, mmOutput_depth_dim, mmOutput_X_dim, mmOutput_Y_dim, mmy, mmx, mm5, mm6, mm7, mm8;
-    mm0 = _mm256_setzero_ps();
-    mm1 = _mm256_setzero_ps();
-    mm2 = _mm256_setzero_ps();
-    mm3 = _mm256_setzero_ps();
-    mm4 = _mm256_setzero_ps();
-    mm5 = _mm256_setzero_ps();
-    mm6 = _mm256_setzero_ps();
-    mm7 = _mm256_setzero_ps();
-    mm8 = _mm256_setzero_ps();
+
         // out_subscript, b, Output_depth_dim, Output_X_dim, Output_Y_dim, y, x, m
     mmMask_Y_dim = _mm256_set1_ps(Mask_Y_dim); // 8 copies of Mask_Y_dim
     mmMask_X_dim = _mm256_set1_ps(Mask_X_dim); // 8 copies of Mask_X_dim
@@ -36,6 +28,17 @@ int unoptimized_layer_FP(const float* in_FP, const float* filter_FP, const float
     for (unsigned int b = 0; b < Input_Output_batch_dim; b++) { //batch
         for (unsigned int m = 0; m < Output_depth_dim; m+=8) { //channels
             mm = _mm256_set_ps(m, m + 1, m + 2, m + 3, m + 4, m + 5, m + 6, m + 7);
+            
+            mm0 = _mm256_setzero_ps();
+            mm1 = _mm256_setzero_ps();
+            mm2 = _mm256_setzero_ps();
+            mm3 = _mm256_setzero_ps();
+            mm4 = _mm256_setzero_ps();
+            mm5 = _mm256_setzero_ps();
+            mm6 = _mm256_setzero_ps();
+            mm7 = _mm256_setzero_ps();
+            mm8 = _mm256_setzero_ps();
+
             for (unsigned int y = 0; y < Output_Y_dim; y++) {			//Output height
                 for (unsigned int x = 0; x < Output_X_dim; x++) {			//Output Width
                     /*
@@ -72,13 +75,13 @@ int unoptimized_layer_FP(const float* in_FP, const float* filter_FP, const float
                                 */
 
 
-                                _mm256_fmadd_ps(mmMask_X_dim, mmInput_depth_dim, mm0); // Mask_x_dim * Input_depth_dim, stored into mm0
-                                _mm256_fmadd_ps(mm0, mmMask_Y_dim, mm1); // Mask_x_dim * Input_depth_dim * Mask_Y_dim, stored into mm1
-                                _mm256_fmadd_ps(mm1, mm, mm1); // Mask_X_dim * Input_depth_dim * Mask_Y_dim * m, stored into mm1
+                                mm0 = _mm256_mul_ps(mmMask_X_dim, mmInput_depth_dim); // Mask_x_dim * Input_depth_dim, stored into mm0
+                                mm1 = _mm256_mul_ps(mm0, mmMask_Y_dim); // Mask_x_dim * Input_depth_dim * Mask_Y_dim, stored into mm1
+                                mm1 = _mm256_mul_ps(mm1, mm); // Mask_X_dim * Input_depth_dim * Mask_Y_dim * m, stored into mm1
 
-                                _mm256_fmadd_ps(mmoff_y, mm0, mm2); // off_y * Mask_x_dim * Input_depth_dim, stored into mm2
+                                mm2 = _mm256_mul_ps(mmoff_y, mm0); // off_y * Mask_x_dim * Input_depth_dim, stored into mm2
 
-                                _mm256_fmadd_ps(mmoff_x, mmInput_depth_dim, mm3); // off_x * Input_depth_dim, stored into mm3
+                                mm3 = _mm256_mul_ps(mmoff_x, mmInput_depth_dim); // off_x * Input_depth_dim, stored into mm3
 
                                 // Add mm1, mm2, mm3 and mmd
                                 mm4 = _mm256_add_ps(mm1, mm2);
@@ -86,7 +89,7 @@ int unoptimized_layer_FP(const float* in_FP, const float* filter_FP, const float
                                 mmfilter_subscript = _mm256_add_ps(mm4, mmd);
                                 
                                 float ref[8];
-                                float filter_FPs[8];
+                                float filter_FPs[8]{};
                                 _mm256_store_ps(ref, mmfilter_subscript);
                                 
                                 for (int i = 0; i < 8; i++) {
@@ -97,7 +100,7 @@ int unoptimized_layer_FP(const float* in_FP, const float* filter_FP, const float
                                 mmw = _mm256_load_ps(&filter_FPs[0]);
 
 
-                                _mm256_fmadd_ps(mmw, mms, mms);
+                                mms = _mm256_mul_ps(mmw, mms);
                                 mmtemp = _mm256_add_ps(mmtemp, mms);
                                 /*
                                     float s = in_FP[in_subscript];
@@ -118,17 +121,17 @@ int unoptimized_layer_FP(const float* in_FP, const float* filter_FP, const float
                     mmy = _mm256_set1_ps(y);
                     mmx = _mm256_set1_ps(x);
 
-                    _mm256_fmadd_ps(mmOutput_depth_dim, mmOutput_X_dim, mm5); // Output_depth_dim * Output_X_dim, stored in mm5
-                    _mm256_fmadd_ps(mm5, mmOutput_Y_dim, mm5); // Output_depth_dim * Output_X_dim * Output_Y_dim, stored in mm5
-                    _mm256_fmadd_ps(mmb, mm5, mm5); // b * (Output_depth_dim * Output_X_dim * Output_Y_dim), stored in mm5
+                    mm5 = _mm256_mul_ps(mmOutput_depth_dim, mmOutput_X_dim); // Output_depth_dim * Output_X_dim, stored in mm5
+                    mm5 = _mm256_mul_ps(mm5, mmOutput_Y_dim); // Output_depth_dim * Output_X_dim * Output_Y_dim, stored in mm5
+                    mm5 = _mm256_mul_ps(mmb, mm5); // b * (Output_depth_dim * Output_X_dim * Output_Y_dim), stored in mm5
 
-                    _mm256_fmadd_ps(mmOutput_depth_dim, mmOutput_X_dim, mm6); // Output_depth_dim * Output_X_dim, stored in mm6
-                    _mm256_fmadd_ps(mmy, mm6, mm6); // y * (Output_depth_dim * Output_X_dim), stored in mm6
+                    mm6 = _mm256_mul_ps(mmOutput_depth_dim, mmOutput_X_dim); // Output_depth_dim * Output_X_dim, stored in mm6
+                    mm6 = _mm256_mul_ps(mmy, mm6); // y * (Output_depth_dim * Output_X_dim), stored in mm6
 
-                    _mm256_fmadd_ps(mmx, mmOutput_depth_dim, mm7); // x * Output_depth_dim, stored in mm7
+                    mm7 = _mm256_mul_ps(mmx, mmOutput_depth_dim); // x * Output_depth_dim, stored in mm7
 
-                    mm8 = _mm256_add_ps(mm5, mm6);
-                    mmout_subscript = _mm256_add_ps(mm7, mm8);
+                    mm8 = _mm256_add_ps(mm5, mm6); // (b * (Output_depth_dim * Output_X_dim * Output_Y_dim)) + (y * (Output_depth_dim * Output_X_dim)), stored in mm8
+                    mmout_subscript = _mm256_add_ps(mm7, mm8); // (x * Output_depth_dim) + (b * (Output_depth_dim * Output_X_dim * Output_Y_dim)) + (y * (Output_depth_dim * Output_X_dim)), stored in mmout_subscript
                     mmout_subscript = _mm256_add_ps(mmout_subscript, mm);
                     /*
                         unsigned long long int out_subscript = b * (Output_depth_dim * Output_X_dim * Output_Y_dim) +
