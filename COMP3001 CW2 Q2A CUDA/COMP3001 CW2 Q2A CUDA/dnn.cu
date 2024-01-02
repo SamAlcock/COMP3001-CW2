@@ -176,7 +176,7 @@ int main() {
 
     //---------YOU NEED TO MODIFY THIS PART-------------------------------------
     dim3 dimBlock(8, 8, 16);
-    dim3 dimGrid((50 + dimBlock.x - 1) / dimBlock.x, (50 + dimBlock.y - 1) / dimBlock.y, (128 + dimBlock.z - 1) / dimBlock.z);
+    dim3 dimGrid(Input_X_dim, Input_Y_dim, Input_depth_dim);
 
     cuda_layer_v1 << <dimGrid, dimBlock >> > (in_FP_d, filter_FP_d, bias_array_FP_d, out_FP_d, Input_Output_batch_dim, Input_X_dim, Input_Y_dim, Input_depth_dim, Stride_X_dim, Stride_Y_dim, Output_X_dim, Output_Y_dim, Output_depth_dim, Mask_X_dim, Mask_Y_dim);
 
@@ -239,7 +239,7 @@ __global__ void cuda_layer_v1(float* in_FP, float* filter_FP, float* bias_array_
     float temp, temp1, bias;
 
     for (unsigned int b = 0; b < Input_Output_batch_dim; b+=2) {
-        if (m < Output_depth_dim) { //128
+        if (m < Output_depth_dim) { 
 
             if (y < Output_Y_dim && x < Output_X_dim) {
                 bias = bias_array_FP[m];
@@ -391,18 +391,18 @@ unsigned short int equal(float const a, float const b) {
 void read_layer_dimensions() {
 
 
-    Input_Output_batch_dim = 40;
-    Input_Y_dim = 52;
-    Input_X_dim = 52;
-    Input_depth_dim = 128;
+    Input_Output_batch_dim = 8;
+    Input_Y_dim = 224;
+    Input_X_dim = 224;
+    Input_depth_dim = 3;
 
-    Stride_Y_dim = 1;
-    Stride_X_dim = 1;
+    Stride_Y_dim = 2;
+    Stride_X_dim = 2;
 
-    Mask_Y_dim = 3;
-    Mask_X_dim = 3;
+    Mask_Y_dim = 7;
+    Mask_X_dim = 7;
 
-    Output_depth_dim = 128;
+    Output_depth_dim = 96;
     Output_X_dim = (Input_X_dim - (Mask_X_dim - Stride_X_dim)) / Stride_X_dim;
     Output_Y_dim = (Input_Y_dim - (Mask_Y_dim - Stride_Y_dim)) / Stride_Y_dim;
 
