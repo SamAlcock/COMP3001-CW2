@@ -236,145 +236,251 @@ __global__ void cuda_layer_v1(float* in_FP, float* filter_FP, float* bias_array_
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int m = blockIdx.z * blockDim.z + threadIdx.z;
-    float temp, temp1, temp2, temp3, bias;
+    float temp, temp1, temp2, temp3, temp4, temp5, temp6, temp7, bias;
 
-    for (unsigned int b = 0; b < Input_Output_batch_dim; b+=4) {
-        if (m < Output_depth_dim) { 
+    if (m < Output_depth_dim && y < Output_Y_dim && x < Output_X_dim) {
+        for (unsigned int b = 0; b < Input_Output_batch_dim; b+=8) {
+            bias = bias_array_FP[m];
+            temp = 0.0f;
+            temp1 = 0.0f;
+            temp2 = 0.0f;
+            temp3 = 0.0f;
+            temp4 = 0.0f;
+            temp5 = 0.0f;
+            temp6 = 0.0f;
+            temp7 = 0.0f;
+            for (unsigned int off_y = 0; off_y < Mask_Y_dim; off_y++) {
+                for (unsigned int off_x = 0; off_x < Mask_X_dim; off_x++) {
 
-            if (y < Output_Y_dim && x < Output_X_dim) {
-                bias = bias_array_FP[m];
-                temp = 0.0f;
-                temp1 = 0.0f;
-                temp2 = 0.0f;
-                temp3 = 0.0f;
-                for (unsigned int off_y = 0; off_y < Mask_Y_dim; off_y++) {
-                    for (unsigned int off_x = 0; off_x < Mask_X_dim; off_x++) {
-                        
-                        for (unsigned int d = 0; d < Input_depth_dim; d++) {
-                            
-                            //d, b
-                            unsigned long long int in_subscript = b * (Input_Y_dim * Input_X_dim * Input_depth_dim)
-                                + (y * Stride_Y_dim + off_y) * Input_X_dim * Input_depth_dim
-                                + (x * Stride_X_dim + off_x) * Input_depth_dim
-                                + d;
-                            unsigned long long int filter_subscript = m * Mask_Y_dim * Mask_X_dim * Input_depth_dim
-                                + off_y * Mask_X_dim * Input_depth_dim
-                                + off_x * Input_depth_dim
-                                + d;
+                    for (unsigned int d = 0; d < Input_depth_dim; d++) {
 
-                            float s = in_FP[in_subscript];
-                            float w = filter_FP[filter_subscript];
-                            temp = temp + s * w;
+                        // b
+                        unsigned long long int in_subscript = b * (Input_Y_dim * Input_X_dim * Input_depth_dim)
+                            + (y * Stride_Y_dim + off_y) * Input_X_dim * Input_depth_dim
+                            + (x * Stride_X_dim + off_x) * Input_depth_dim
+                            + d;
+                        unsigned long long int filter_subscript = m * Mask_Y_dim * Mask_X_dim * Input_depth_dim
+                            + off_y * Mask_X_dim * Input_depth_dim
+                            + off_x * Input_depth_dim
+                            + d;
 
-                            // d, b + 1
-                            in_subscript = (b + 1) * (Input_Y_dim * Input_X_dim * Input_depth_dim)
-                                + (y * Stride_Y_dim + off_y) * Input_X_dim * Input_depth_dim
-                                + (x * Stride_X_dim + off_x) * Input_depth_dim
-                                + d;
-                            filter_subscript = m * Mask_Y_dim * Mask_X_dim * Input_depth_dim
-                                + off_y * Mask_X_dim * Input_depth_dim
-                                + off_x * Input_depth_dim
-                                + d;
+                        float s = in_FP[in_subscript];
+                        float w = filter_FP[filter_subscript];
+                        temp = temp + s * w;
 
-                            s = in_FP[in_subscript];
-                            w = filter_FP[filter_subscript];
-                            temp1 = temp1 + s * w;
+                        // b + 1
+                        in_subscript = (b + 1) * (Input_Y_dim * Input_X_dim * Input_depth_dim)
+                            + (y * Stride_Y_dim + off_y) * Input_X_dim * Input_depth_dim
+                            + (x * Stride_X_dim + off_x) * Input_depth_dim
+                            + d;
+                        filter_subscript = m * Mask_Y_dim * Mask_X_dim * Input_depth_dim
+                            + off_y * Mask_X_dim * Input_depth_dim
+                            + off_x * Input_depth_dim
+                            + d;
 
-                            // d, b + 2
-                            in_subscript = (b + 2) * (Input_Y_dim * Input_X_dim * Input_depth_dim)
-                                + (y * Stride_Y_dim + off_y) * Input_X_dim * Input_depth_dim
-                                + (x * Stride_X_dim + off_x) * Input_depth_dim
-                                + d;
-                            filter_subscript = m * Mask_Y_dim * Mask_X_dim * Input_depth_dim
-                                + off_y * Mask_X_dim * Input_depth_dim
-                                + off_x * Input_depth_dim
-                                + d;
+                        s = in_FP[in_subscript];
+                        w = filter_FP[filter_subscript];
+                        temp1 = temp1 + s * w;
 
-                            s = in_FP[in_subscript];
-                            w = filter_FP[filter_subscript];
-                            temp2 = temp2 + s * w;
+                        // b + 2
+                        in_subscript = (b + 2) * (Input_Y_dim * Input_X_dim * Input_depth_dim)
+                            + (y * Stride_Y_dim + off_y) * Input_X_dim * Input_depth_dim
+                            + (x * Stride_X_dim + off_x) * Input_depth_dim
+                            + d;
+                        filter_subscript = m * Mask_Y_dim * Mask_X_dim * Input_depth_dim
+                            + off_y * Mask_X_dim * Input_depth_dim
+                            + off_x * Input_depth_dim
+                            + d;
 
-                            // d, b + 3
-                            in_subscript = (b + 3) * (Input_Y_dim * Input_X_dim * Input_depth_dim)
-                                + (y * Stride_Y_dim + off_y) * Input_X_dim * Input_depth_dim
-                                + (x * Stride_X_dim + off_x) * Input_depth_dim
-                                + d;
-                            filter_subscript = m * Mask_Y_dim * Mask_X_dim * Input_depth_dim
-                                + off_y * Mask_X_dim * Input_depth_dim
-                                + off_x * Input_depth_dim
-                                + d;
+                        s = in_FP[in_subscript];
+                        w = filter_FP[filter_subscript];
+                        temp2 = temp2 + s * w;
 
-                            s = in_FP[in_subscript];
-                            w = filter_FP[filter_subscript];
-                            temp3 = temp3 + s * w;
-                        }
+                        // b + 3
+                        in_subscript = (b + 3) * (Input_Y_dim * Input_X_dim * Input_depth_dim)
+                            + (y * Stride_Y_dim + off_y) * Input_X_dim * Input_depth_dim
+                            + (x * Stride_X_dim + off_x) * Input_depth_dim
+                            + d;
+                        filter_subscript = m * Mask_Y_dim * Mask_X_dim * Input_depth_dim
+                            + off_y * Mask_X_dim * Input_depth_dim
+                            + off_x * Input_depth_dim
+                            + d;
+
+                        s = in_FP[in_subscript];
+                        w = filter_FP[filter_subscript];
+                        temp3 = temp3 + s * w;
+
+                        // b + 4
+                        in_subscript = (b + 4) * (Input_Y_dim * Input_X_dim * Input_depth_dim)
+                            + (y * Stride_Y_dim + off_y) * Input_X_dim * Input_depth_dim
+                            + (x * Stride_X_dim + off_x) * Input_depth_dim
+                            + d;
+                        filter_subscript = m * Mask_Y_dim * Mask_X_dim * Input_depth_dim
+                            + off_y * Mask_X_dim * Input_depth_dim
+                            + off_x * Input_depth_dim
+                            + d;
+
+                        s = in_FP[in_subscript];
+                        w = filter_FP[filter_subscript];
+                        temp4 = temp4 + s * w;
+
+                        // b + 5
+                        in_subscript = (b + 5) * (Input_Y_dim * Input_X_dim * Input_depth_dim)
+                            + (y * Stride_Y_dim + off_y) * Input_X_dim * Input_depth_dim
+                            + (x * Stride_X_dim + off_x) * Input_depth_dim
+                            + d;
+                        filter_subscript = m * Mask_Y_dim * Mask_X_dim * Input_depth_dim
+                            + off_y * Mask_X_dim * Input_depth_dim
+                            + off_x * Input_depth_dim
+                            + d;
+
+                        s = in_FP[in_subscript];
+                        w = filter_FP[filter_subscript];
+                        temp5 = temp5 + s * w;
+
+                        // b + 6
+                        in_subscript = (b + 6) * (Input_Y_dim * Input_X_dim * Input_depth_dim)
+                            + (y * Stride_Y_dim + off_y) * Input_X_dim * Input_depth_dim
+                            + (x * Stride_X_dim + off_x) * Input_depth_dim
+                            + d;
+                        filter_subscript = m * Mask_Y_dim * Mask_X_dim * Input_depth_dim
+                            + off_y * Mask_X_dim * Input_depth_dim
+                            + off_x * Input_depth_dim
+                            + d;
+
+                        s = in_FP[in_subscript];
+                        w = filter_FP[filter_subscript];
+                        temp6 = temp6 + s * w;
+
+                        // b + 7
+                        in_subscript = (b + 7) * (Input_Y_dim * Input_X_dim * Input_depth_dim)
+                            + (y * Stride_Y_dim + off_y) * Input_X_dim * Input_depth_dim
+                            + (x * Stride_X_dim + off_x) * Input_depth_dim
+                            + d;
+                        filter_subscript = m * Mask_Y_dim * Mask_X_dim * Input_depth_dim
+                            + off_y * Mask_X_dim * Input_depth_dim
+                            + off_x * Input_depth_dim
+                            + d;
+
+                        s = in_FP[in_subscript];
+                        w = filter_FP[filter_subscript];
+                        temp7 = temp7 + s * w;
                     }
                 }
+            }
+            // b
+            unsigned long long int out_subscript = b * (Output_depth_dim * Output_X_dim * Output_Y_dim) +
+                y * (Output_depth_dim * Output_X_dim) +
+                x * Output_depth_dim
+                + m;
 
-                unsigned long long int out_subscript = b * (Output_depth_dim * Output_X_dim * Output_Y_dim) +
-                    y * (Output_depth_dim * Output_X_dim) +
-                    x * Output_depth_dim
-                    + m;
-
-                temp += bias;
-                if (temp < 0.0f) {
-                    out_FP[out_subscript] = 0.0f;
-                }
-                else {
-                    out_FP[out_subscript] = temp;
-                }
-
-                out_subscript = (b + 1) * (Output_depth_dim * Output_X_dim * Output_Y_dim) +
-                    y * (Output_depth_dim * Output_X_dim) +
-                    x * Output_depth_dim
-                    + m;
-
-                temp1 += bias;
-                if (temp1 < 0.0f) {
-                    out_FP[out_subscript] = 0.0f;
-                }
-                else {
-                    out_FP[out_subscript] = temp1;
-                }   
-
-                out_subscript = (b + 2) * (Output_depth_dim * Output_X_dim * Output_Y_dim) +
-                    y * (Output_depth_dim * Output_X_dim) +
-                    x * Output_depth_dim
-                    + m;
-
-                temp2 += bias;
-                if (temp2 < 0.0f) {
-                    out_FP[out_subscript] = 0.0f;
-                }
-                else {
-                    out_FP[out_subscript] = temp2;
-                }
-
-                out_subscript = (b + 3) * (Output_depth_dim * Output_X_dim * Output_Y_dim) +
-                    y * (Output_depth_dim * Output_X_dim) +
-                    x * Output_depth_dim
-                    + m;
-
-                temp3 += bias;
-                if (temp3 < 0.0f) {
-                    out_FP[out_subscript] = 0.0f;
-                }
-                else {
-                    out_FP[out_subscript] = temp3;
-                }
-
-
-
-
-
-
-
+            temp += bias;
+            if (temp < 0.0f) {
+                out_FP[out_subscript] = 0.0f;
+            }
+            else {
+                out_FP[out_subscript] = temp;
             }
 
+            // b + 1
+            out_subscript = (b + 1) * (Output_depth_dim * Output_X_dim * Output_Y_dim) +
+                y * (Output_depth_dim * Output_X_dim) +
+                x * Output_depth_dim
+                + m;
 
+            temp1 += bias;
+            if (temp1 < 0.0f) {
+                out_FP[out_subscript] = 0.0f;
+            }
+            else {
+                out_FP[out_subscript] = temp1;
+            }
+
+            // b + 2
+            out_subscript = (b + 2) * (Output_depth_dim * Output_X_dim * Output_Y_dim) +
+                y * (Output_depth_dim * Output_X_dim) +
+                x * Output_depth_dim
+                + m;
+
+            temp2 += bias;
+            if (temp2 < 0.0f) {
+                out_FP[out_subscript] = 0.0f;
+            }
+            else {
+                out_FP[out_subscript] = temp2;
+            }
+
+            // b + 3
+            out_subscript = (b + 3) * (Output_depth_dim * Output_X_dim * Output_Y_dim) +
+                y * (Output_depth_dim * Output_X_dim) +
+                x * Output_depth_dim
+                + m;
+
+            temp3 += bias;
+            if (temp3 < 0.0f) {
+                out_FP[out_subscript] = 0.0f;
+            }
+            else {
+                out_FP[out_subscript] = temp3;
+            }
+
+            // b + 4
+            out_subscript = (b + 4) * (Output_depth_dim * Output_X_dim * Output_Y_dim) +
+                y * (Output_depth_dim * Output_X_dim) +
+                x * Output_depth_dim
+                + m;
+
+            temp4 += bias;
+            if (temp4 < 0.0f) {
+                out_FP[out_subscript] = 0.0f;
+            }
+            else {
+                out_FP[out_subscript] = temp4;
+            }
+
+            // b + 5
+            out_subscript = (b + 5) * (Output_depth_dim * Output_X_dim * Output_Y_dim) +
+                y * (Output_depth_dim * Output_X_dim) +
+                x * Output_depth_dim
+                + m;
+
+            temp5 += bias;
+            if (temp5 < 0.0f) {
+                out_FP[out_subscript] = 0.0f;
+            }
+            else {
+                out_FP[out_subscript] = temp5;
+            }
+
+            // b + 6
+            out_subscript = (b + 6) * (Output_depth_dim * Output_X_dim * Output_Y_dim) +
+                y * (Output_depth_dim * Output_X_dim) +
+                x * Output_depth_dim
+                + m;
+
+            temp6 += bias;
+            if (temp6 < 0.0f) {
+                out_FP[out_subscript] = 0.0f;
+            }
+            else {
+                out_FP[out_subscript] = temp6;
+            }
+
+            // b + 7
+            out_subscript = (b + 7) * (Output_depth_dim * Output_X_dim * Output_Y_dim) +
+                y * (Output_depth_dim * Output_X_dim) +
+                x * Output_depth_dim
+                + m;
+
+            temp7 += bias;
+            if (temp7 < 0.0f) {
+                out_FP[out_subscript] = 0.0f;
+            }
+            else {
+                out_FP[out_subscript] = temp7;
+            }
         }
     }
-
 }
 
 
@@ -419,17 +525,17 @@ void read_layer_dimensions() {
 
 
     Input_Output_batch_dim = 8;
-    Input_Y_dim = 224;
-    Input_X_dim = 224;
-    Input_depth_dim = 3;
+    Input_Y_dim = 55;
+    Input_X_dim = 55;
+    Input_depth_dim = 96;
 
-    Stride_Y_dim = 2;
-    Stride_X_dim = 2;
+    Stride_Y_dim = 1;
+    Stride_X_dim = 1;
 
-    Mask_Y_dim = 7;
-    Mask_X_dim = 7;
+    Mask_Y_dim = 1;
+    Mask_X_dim = 1;
 
-    Output_depth_dim = 96;
+    Output_depth_dim = 16;
     Output_X_dim = (Input_X_dim - (Mask_X_dim - Stride_X_dim)) / Stride_X_dim;
     Output_Y_dim = (Input_Y_dim - (Mask_Y_dim - Stride_Y_dim)) / Stride_Y_dim;
 
