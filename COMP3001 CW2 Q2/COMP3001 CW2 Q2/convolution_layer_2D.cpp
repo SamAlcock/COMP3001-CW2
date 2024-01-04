@@ -18,6 +18,7 @@ int unoptimized_layer_FP(const float* in_FP, const float* filter_FP, const float
     float temp, bias;
     __m256 mm, mmbias, mmMask_Y_dim, mmMask_X_dim, mmInput_depth_dim, mmoff_y, mmoff_x, mmd, mmfilter_subscript, mm0, mm1, mm1a, mm2, mm3, mm4, mm4a, mms, mms1, mmw, mmtemp, mmtemp1;
     __m256 mmout_subscript, mmb, mmOutput_depth_dim, mmOutput_X_dim, mmOutput_Y_dim, mmy, mmx, mm5, mm5a, mm5b, mm6, mm6a, mm7, mm8;
+    __m256 mmsb1, mms1b1, mmout_subscript1, mmb1, mm8b1, mm5b1;
 
         // out_subscript, b, Output_depth_dim, Output_X_dim, Output_Y_dim, y, x, m
     mmMask_Y_dim = _mm256_set1_ps(Mask_Y_dim); // 8 copies of Mask_Y_dim
@@ -25,7 +26,7 @@ int unoptimized_layer_FP(const float* in_FP, const float* filter_FP, const float
     mmInput_depth_dim = _mm256_set1_ps(Input_depth_dim); // 8 copies of Input_depth_dim
     
 
-    for (unsigned int b = 0; b < Input_Output_batch_dim; b++) { //batch
+    for (unsigned int b = 0; b < Input_Output_batch_dim; b+=2) { //batch
         for (unsigned int m = 0; m < Output_depth_dim; m+=8) { //channels
             mm = _mm256_set_ps(m, m + 1, m + 2, m + 3, m + 4, m + 5, m + 6, m + 7);
             
@@ -56,6 +57,7 @@ int unoptimized_layer_FP(const float* in_FP, const float* filter_FP, const float
 
                     temp = 0.0f;
                     mmtemp = _mm256_setzero_ps();
+                    mmtemp1 = _mm256_setzero_ps();
                     for (unsigned int off_y = 0; off_y < Mask_Y_dim; off_y++) {
                         mmoff_y = _mm256_set1_ps(off_y); // 8 copies of off_y
                         for (unsigned int off_x = 0; off_x < Mask_X_dim; off_x++) {
@@ -68,6 +70,13 @@ int unoptimized_layer_FP(const float* in_FP, const float* filter_FP, const float
                                     + (y * Stride_Y_dim + off_y) * Input_X_dim * Input_depth_dim
                                     + (x * Stride_X_dim + off_x) * Input_depth_dim
                                     + d;
+
+                                // b + 1
+                                unsigned long long int in_subscript1 = (b + 1) * (Input_Y_dim * Input_X_dim * Input_depth_dim)
+                                    + (y * Stride_Y_dim + off_y) * Input_X_dim * Input_depth_dim
+                                    + (x * Stride_X_dim + off_x) * Input_depth_dim
+                                    + d;
+
 
                                 // m
                                 /*
@@ -98,12 +107,16 @@ int unoptimized_layer_FP(const float* in_FP, const float* filter_FP, const float
                                 for (int i = 0; i < 8; i++) {
                                     filter_FPs[i] = filter_FP[(int)ref[i]];
                                 }
-
-                                mms = _mm256_set1_ps(in_FP[in_subscript]);
                                 mmw = _mm256_load_ps(&filter_FPs[0]);
-
+                                mms = _mm256_set1_ps(in_FP[in_subscript]);
+ 
                                 mms1 = _mm256_mul_ps(mmw, mms);
                                 mmtemp = _mm256_add_ps(mmtemp, mms1);
+
+                                mmsb1 = _mm256_set1_ps(in_FP[in_subscript1]);
+
+                                mms1b1 = _mm256_mul_ps(mmw, mmsb1);
+                                mmtemp1 = _mm256_add_ps(mmtemp1, mms1b1);
                                 /*
                                     float s = in_FP[in_subscript];
                                     float w = filter_FP[filter_subscript];
@@ -135,6 +148,13 @@ int unoptimized_layer_FP(const float* in_FP, const float* filter_FP, const float
                     mm8 = _mm256_add_ps(mm5b, mm6a); // (b * (Output_depth_dim * Output_X_dim * Output_Y_dim)) + (y * (Output_depth_dim * Output_X_dim)), stored in mm8
                     mmout_subscript = _mm256_add_ps(mm7, mm8); // (x * Output_depth_dim) + (b * (Output_depth_dim * Output_X_dim * Output_Y_dim)) + (y * (Output_depth_dim * Output_X_dim)), stored in mmout_subscript
                     mmout_subscript = _mm256_add_ps(mmout_subscript, mm);
+
+                    // b + 1
+                    mmb1 = _mm256_set1_ps(b + 1); // 8 copies of b + 1
+                    mm5b1 = _mm256_mul_ps(mmb1, mm5a);
+                    mm8b1 = _mm256_add_ps(mm5b1, mm6a);
+                    mmout_subscript1 = _mm256_add_ps(mm7, mm8b1);
+                    mmout_subscript1 = _mm256_add_ps(mmout_subscript1, mm);
                     /*
                         unsigned long long int out_subscript = b * (Output_depth_dim * Output_X_dim * Output_Y_dim) +
                         y * (Output_depth_dim * Output_X_dim) +
@@ -145,23 +165,25 @@ int unoptimized_layer_FP(const float* in_FP, const float* filter_FP, const float
 
                    
                     mmtemp = _mm256_add_ps(mmtemp, mmbias);
+
+                    // b + 1
+                    mmtemp1 = _mm256_add_ps(mmtemp1, mmbias);
                     
                     __declspec(align(64)) float temps[8];
                     __declspec(align(64)) float out_subscripts[8];
                     _mm256_store_ps(temps, mmtemp);
                     _mm256_store_ps(out_subscripts, mmout_subscript);
+
+                    // b + 1
+                    __declspec(align(64)) float temps1[8];
+                    __declspec(align(64)) float out_subscripts1[8];
+                    _mm256_store_ps(temps1, mmtemp1);
+                    _mm256_store_ps(out_subscripts1, mmout_subscript1);
                     
 
                     for (int i = 0; i < 8; i++) {
-                        //out_to_compare_with_FP[(int)out_subscripts[i]] = Relu_float(temps[i]);
-
-                        if (temps[i] < 0.0f) {
-                            out_to_compare_with_FP[(int)out_subscripts[i]] = 0.0f;
-                        }
-                        else {
-                            out_to_compare_with_FP[(int)out_subscripts[i]] = temps[i];
-                        }
-                        
+                        out_to_compare_with_FP[(int)out_subscripts[i]] = Relu_float(temps[i]);
+                        out_to_compare_with_FP[(int)out_subscripts1[i]] = Relu_float(temps1[i]);
                     }
                     
                     // temp += bias;
@@ -242,4 +264,6 @@ float Relu_float(const float temp) {
         return temp;
 
 }
+
+
 
