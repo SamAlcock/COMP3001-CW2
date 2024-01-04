@@ -273,10 +273,6 @@ __global__ void cuda_layer_v1(float* in_FP, float* filter_FP, float* bias_array_
                             + (y * Stride_Y_dim + off_y) * Input_X_dim * Input_depth_dim
                             + (x * Stride_X_dim + off_x) * Input_depth_dim
                             + d;
-                        filter_subscript = m * Mask_Y_dim * Mask_X_dim * Input_depth_dim
-                            + off_y * Mask_X_dim * Input_depth_dim
-                            + off_x * Input_depth_dim
-                            + d;
 
                         s = in_FP[in_subscript];
                         w = filter_FP[filter_subscript];
@@ -287,10 +283,7 @@ __global__ void cuda_layer_v1(float* in_FP, float* filter_FP, float* bias_array_
                             + (y * Stride_Y_dim + off_y) * Input_X_dim * Input_depth_dim
                             + (x * Stride_X_dim + off_x) * Input_depth_dim
                             + d;
-                        filter_subscript = m * Mask_Y_dim * Mask_X_dim * Input_depth_dim
-                            + off_y * Mask_X_dim * Input_depth_dim
-                            + off_x * Input_depth_dim
-                            + d;
+
 
                         s = in_FP[in_subscript];
                         w = filter_FP[filter_subscript];
@@ -301,10 +294,7 @@ __global__ void cuda_layer_v1(float* in_FP, float* filter_FP, float* bias_array_
                             + (y * Stride_Y_dim + off_y) * Input_X_dim * Input_depth_dim
                             + (x * Stride_X_dim + off_x) * Input_depth_dim
                             + d;
-                        filter_subscript = m * Mask_Y_dim * Mask_X_dim * Input_depth_dim
-                            + off_y * Mask_X_dim * Input_depth_dim
-                            + off_x * Input_depth_dim
-                            + d;
+
 
                         s = in_FP[in_subscript];
                         w = filter_FP[filter_subscript];
@@ -315,10 +305,7 @@ __global__ void cuda_layer_v1(float* in_FP, float* filter_FP, float* bias_array_
                             + (y * Stride_Y_dim + off_y) * Input_X_dim * Input_depth_dim
                             + (x * Stride_X_dim + off_x) * Input_depth_dim
                             + d;
-                        filter_subscript = m * Mask_Y_dim * Mask_X_dim * Input_depth_dim
-                            + off_y * Mask_X_dim * Input_depth_dim
-                            + off_x * Input_depth_dim
-                            + d;
+
 
                         s = in_FP[in_subscript];
                         w = filter_FP[filter_subscript];
@@ -329,10 +316,7 @@ __global__ void cuda_layer_v1(float* in_FP, float* filter_FP, float* bias_array_
                             + (y * Stride_Y_dim + off_y) * Input_X_dim * Input_depth_dim
                             + (x * Stride_X_dim + off_x) * Input_depth_dim
                             + d;
-                        filter_subscript = m * Mask_Y_dim * Mask_X_dim * Input_depth_dim
-                            + off_y * Mask_X_dim * Input_depth_dim
-                            + off_x * Input_depth_dim
-                            + d;
+
 
                         s = in_FP[in_subscript];
                         w = filter_FP[filter_subscript];
@@ -343,10 +327,7 @@ __global__ void cuda_layer_v1(float* in_FP, float* filter_FP, float* bias_array_
                             + (y * Stride_Y_dim + off_y) * Input_X_dim * Input_depth_dim
                             + (x * Stride_X_dim + off_x) * Input_depth_dim
                             + d;
-                        filter_subscript = m * Mask_Y_dim * Mask_X_dim * Input_depth_dim
-                            + off_y * Mask_X_dim * Input_depth_dim
-                            + off_x * Input_depth_dim
-                            + d;
+
 
                         s = in_FP[in_subscript];
                         w = filter_FP[filter_subscript];
@@ -357,10 +338,7 @@ __global__ void cuda_layer_v1(float* in_FP, float* filter_FP, float* bias_array_
                             + (y * Stride_Y_dim + off_y) * Input_X_dim * Input_depth_dim
                             + (x * Stride_X_dim + off_x) * Input_depth_dim
                             + d;
-                        filter_subscript = m * Mask_Y_dim * Mask_X_dim * Input_depth_dim
-                            + off_y * Mask_X_dim * Input_depth_dim
-                            + off_x * Input_depth_dim
-                            + d;
+
 
                         s = in_FP[in_subscript];
                         w = filter_FP[filter_subscript];
@@ -525,17 +503,17 @@ void read_layer_dimensions() {
 
 
     Input_Output_batch_dim = 8;
-    Input_Y_dim = 55;
-    Input_X_dim = 55;
-    Input_depth_dim = 96;
+    Input_Y_dim = 27;
+    Input_X_dim = 27;
+    Input_depth_dim = 64;
 
     Stride_Y_dim = 1;
     Stride_X_dim = 1;
 
-    Mask_Y_dim = 1;
-    Mask_X_dim = 1;
+    Mask_Y_dim = 3;
+    Mask_X_dim = 3;
 
-    Output_depth_dim = 16;
+    Output_depth_dim = 256;
     Output_X_dim = (Input_X_dim - (Mask_X_dim - Stride_X_dim)) / Stride_X_dim;
     Output_Y_dim = (Input_Y_dim - (Mask_Y_dim - Stride_Y_dim)) / Stride_Y_dim;
 
